@@ -33,7 +33,13 @@ export async function GET(request: NextRequest) {
       budgetUSDC: item.budgetUSDC,
       license: item.license,
       requesterAddress: item.requesterAddress,
+      participantType: item.participantType,
+      participantName: item.participantName,
+      operatorAddress: item.operatorAddress,
       providerAddress: item.providerAddress ?? null,
+      providerParticipantType: item.providerParticipantType,
+      providerParticipantName: item.providerParticipantName,
+      providerOperatorAddress: item.providerOperatorAddress,
       status: item.status,
       agentConsumable: item.agentConsumable,
       detailUrl: `/requests`

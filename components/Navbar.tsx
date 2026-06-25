@@ -11,7 +11,7 @@ const navItems = [
   { label: "Publish Resource", href: "/publish-resource" },
   { label: "Requests", href: "/requests" },
   { label: "My Activity", href: "/my-activity" },
-  { label: "Risk API", href: "/reputation" },
+  { label: "Risk Intelligence", href: "/reputation" },
   { label: "Agent API", href: "/agent-api" },
   { label: "Walkthrough", href: "/walkthrough" }
 ];

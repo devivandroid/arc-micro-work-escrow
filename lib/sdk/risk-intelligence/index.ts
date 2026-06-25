@@ -1,0 +1,27 @@
+export { RiskIntelligenceClient, RiskIntelligenceClientError } from "@/lib/sdk/risk-intelligence/client";
+export type {
+  ActivityLevel,
+  BehavioralSignalStatus,
+  ConfidenceLevel,
+  ListParticipantsParams,
+  RiskIntelligenceClientOptions,
+  RiskGuardCheck,
+  RiskGuardDecision,
+  RiskGuardPolicy,
+  RiskGuardResponse,
+  RiskModelResponse,
+  RiskParticipantType,
+  RiskParticipantsResponse,
+  RiskProfileStatus,
+  RiskProfileResponse,
+  RiskSdkActivity,
+  RiskSdkBehavioralSignal,
+  RiskSdkParticipant,
+  RiskSdkRiskSignal,
+  RiskSdkScores,
+  RiskSignalsResponse,
+  RiskSignalSeverity,
+  RiskSummaryResponse,
+  RiskTier,
+  UnknownWalletBehavior
+} from "@/lib/sdk/risk-intelligence/types";

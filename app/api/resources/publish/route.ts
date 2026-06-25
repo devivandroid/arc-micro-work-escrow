@@ -1,5 +1,6 @@
 import { isAddress } from "ethers";
 import { NextResponse, type NextRequest } from "next/server";
+import { isParticipantType } from "@/lib/participants";
 import {
   isLicenseType,
   isResourceType,
@@ -38,17 +39,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "INVALID_METADATA" }, { status: 400 });
   }
 
-  if (!isValidUsdcAmount(body.priceUSDC)) {
+  const priceUSDC = body.priceUSDC;
+
+  if (!isValidUsdcAmount(priceUSDC)) {
     return NextResponse.json(
       { error: "INVALID_PRICE_USDC", message: "priceUSDC must be a positive USDC amount." },
       { status: 400 }
     );
   }
 
-  if (typeof body.sellerAddress !== "string" || !isAddress(body.sellerAddress)) {
+  const sellerAddress = body.sellerAddress;
+
+  if (typeof sellerAddress !== "string" || !isAddress(sellerAddress)) {
     return NextResponse.json({ error: "INVALID_SELLER_ADDRESS" }, { status: 400 });
   }
 
+  if (
+    body.operatorAddress &&
+    (typeof body.operatorAddress !== "string" || !isAddress(body.operatorAddress))
+  ) {
+    return NextResponse.json({ error: "INVALID_OPERATOR_ADDRESS" }, { status: 400 });
+  }
+
+  const participantType = isParticipantType(body.participantType)
+    ? body.participantType
+    : undefined;
+  const participantName =
+    typeof body.participantName === "string" && body.participantName.trim()
+      ? body.participantName.trim()
+      : undefined;
+  const operatorAddress =
+    typeof body.operatorAddress === "string" && body.operatorAddress.trim()
+      ? body.operatorAddress.trim()
+      : undefined;
   const deliveryType = body.deliveryType === "download" ? "download" : "inline";
   const files = Array.isArray(body.files) ? (body.files as ResourceFile[]) : [];
 
@@ -66,9 +89,13 @@ export async function POST(request: NextRequest) {
     resourceType: body.resourceType,
     category: String(body.category || "Uncategorized"),
     tags: parseTags(body.tags),
-    priceUSDC: body.priceUSDC,
+    priceUSDC,
     license: body.license,
-    sellerAddress: body.sellerAddress,
+    sellerName: participantName,
+    participantType,
+    participantName,
+    operatorAddress,
+    sellerAddress,
     deliveryType: deliveryType as DeliveryType,
     previewText: String(body.previewText || body.description),
     lockedContentURI: "server-memory://resource",

@@ -1,3 +1,5 @@
+import type { ParticipantType } from "@/types/resource";
+
 export type TaskMetadata = {
   title?: string;
   description?: string;
@@ -8,7 +10,13 @@ export type TaskMetadata = {
   license?: string;
   accessType?: "instant" | "manual";
   requesterAddress?: string;
+  participantType?: ParticipantType;
+  participantName?: string;
+  operatorAddress?: string;
   providerAddress?: string;
+  providerParticipantType?: ParticipantType;
+  providerParticipantName?: string;
+  providerOperatorAddress?: string;
   resourceType?: string;
   agentConsumable?: boolean;
   deadline?: string | null;

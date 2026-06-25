@@ -6,6 +6,7 @@ const featuredDatasetId = "synthetic-agent-commerce-benchmark-dataset";
 const featuredRiskDatasetId = "agent-financial-reputation-risk-benchmark";
 const validTxHash = `0x${"1".repeat(64)}`;
 const validBuyer = "0x5555555555555555555555555555555555555555";
+const unknownRiskWallet = "0x1234500000000000000000000000000000000000";
 
 const results = [];
 
@@ -66,6 +67,31 @@ await test("GET /api/agent-capabilities exposes Arc metadata", async () => {
     body.capabilities?.some((capability) => capability.id === "downloadable_assets"),
     "missing downloadable assets capability"
   );
+  assert(body.risk_intelligence === true, "missing risk_intelligence flag");
+  assert(
+    body.risk_profile_endpoint === "/api/risk/profile/{wallet}",
+    "missing public risk profile endpoint"
+  );
+  assert(body.participant_risk_profiles === true, "missing participant risk profiles flag");
+  assert(body.behavioral_signals === true, "missing behavioral signals flag");
+  assert(body.confidence_levels === true, "missing confidence levels flag");
+  assert(body.risk_guard === true, "missing risk_guard flag");
+  assert(body.risk_guard_endpoint === "/api/risk/guard", "missing risk guard endpoint");
+  assert(body.pre_transaction_risk_checks === true, "missing pre-transaction checks flag");
+  assert(body.client_defined_risk_policy === true, "missing client-defined policy flag");
+  assert(body.no_data_profiles === true, "missing no-data profiles flag");
+  assert(body.no_data_is_not_high_risk === true, "missing no-data safety flag");
+  assert(
+    body.risk_guard_default_unknown_wallet_behavior === "review",
+    "wrong default unknown wallet behavior"
+  );
+  assert(
+    Array.isArray(body.unknown_wallet_behavior) &&
+      body.unknown_wallet_behavior.includes("allow") &&
+      body.unknown_wallet_behavior.includes("review") &&
+      body.unknown_wallet_behavior.includes("block"),
+    "missing unknown wallet behavior options"
+  );
 });
 
 await test("GET /api/reputation returns leaderboard", async () => {
@@ -96,6 +122,158 @@ await test("GET /api/reputation/model returns methodology", async () => {
   assert(response.status === 200, `expected 200, got ${response.status}`);
   assert(body.scope === "Knowledge Exchange activity only", "wrong model scope");
   assert(body.scoring?.startingScore === 500, "missing starting score");
+});
+
+await test("GET /api/risk/profile/[wallet] returns full RiskProfile", async () => {
+  const { response, body } = await request(
+    "/api/risk/profile/0x8e0a1111111111111111111111111111111125be"
+  );
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.service === "Knowledge Exchange Public Risk Intelligence Service", "wrong service");
+  assert(body.scope === "Knowledge Exchange activity only", "wrong risk scope");
+  assert(typeof body.scores?.financialBehaviorScore === "number", "missing behavior score");
+  assert(Array.isArray(body.behavioralSignals), "missing behavioral signals");
+  assert(Array.isArray(body.riskSignals), "missing risk signals");
+});
+
+await test("GET /api/risk/summary/[wallet] returns compact summary", async () => {
+  const { response, body } = await request(
+    "/api/risk/summary/0x8e0a1111111111111111111111111111111125be"
+  );
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.summary?.riskTier, "missing risk tier");
+  assert(body.summary?.confidenceLevel, "missing confidence level");
+  assert(body.participant?.type, "missing participant type");
+});
+
+await test("GET /api/risk/signals/[wallet] returns signals", async () => {
+  const { response, body } = await request(
+    "/api/risk/signals/0x8e0a1111111111111111111111111111111125be"
+  );
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(Array.isArray(body.behavioralSignals), "missing behavioral signals");
+  assert(Array.isArray(body.riskSignals), "missing risk signals");
+});
+
+await test("GET /api/risk/model returns public methodology", async () => {
+  const { response, body } = await request("/api/risk/model");
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.service === "Knowledge Exchange Public Risk Intelligence Service", "wrong service");
+  assert(body.scoring?.financialBehaviorScore?.startingScore === 500, "missing starting score");
+});
+
+await test("GET /api/risk/participants returns demo participant summaries", async () => {
+  const { response, body } = await request("/api/risk/participants?limit=5");
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(Array.isArray(body.participants), "participants must be an array");
+  assert(body.participants.length > 0, "expected seeded participants");
+  assert(body.participants[0]?.summary?.riskTier, "missing participant risk summary");
+});
+
+await test("GET /api/risk/profile unknown wallet returns neutral no_data profile", async () => {
+  const { response, body } = await request(`/api/risk/profile/${unknownRiskWallet}`);
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.profileStatus === "no_data", "expected profileStatus=no_data");
+  assert(body.scores?.riskTier === "Unknown", "expected Unknown risk tier");
+  assert(body.scores?.riskTier !== "High", "unknown wallet must not be High risk");
+  assert(body.scores?.riskScore === null, "expected null risk score");
+  assert(body.scores?.financialBehaviorScore === null, "expected null behavior score");
+});
+
+await test("GET /api/risk/summary unknown wallet returns no_data summary", async () => {
+  const { response, body } = await request(`/api/risk/summary/${unknownRiskWallet}`);
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.profileStatus === "no_data", "expected profileStatus=no_data");
+  assert(body.summary?.riskTier === "Unknown", "expected Unknown risk tier");
+  assert(body.summary?.riskScore === null, "expected null risk score");
+  assert(body.summary?.activityLevel === "Unknown", "expected Unknown activity level");
+  assert(body.summary?.evidenceCount === 0, "expected zero evidence");
+});
+
+await test("GET /api/risk/signals unknown wallet returns informational no-data signal", async () => {
+  const { response, body } = await request(`/api/risk/signals/${unknownRiskWallet}`);
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.profileStatus === "no_data", "expected profileStatus=no_data");
+  assert(Array.isArray(body.behavioralSignals), "missing behavioral signals");
+  assert(body.behavioralSignals.length === 0, "expected no behavioral signals");
+  assert(body.riskSignals?.[0]?.label === "No Knowledge Exchange activity", "missing no-data signal");
+  assert(body.riskSignals?.[0]?.severity === "Info", "no-data signal should be informational");
+});
+
+await test("POST /api/risk/guard permissive policy returns allow or review", async () => {
+  const { response, body } = await request("/api/risk/guard", {
+    method: "POST",
+    body: JSON.stringify({
+      wallet: "0x8e0a1111111111111111111111111111111125be",
+      policy: {
+        maxRiskScore: 100,
+        allowedRiskTiers: ["Low", "Medium", "High", "Unknown"],
+        minimumConfidenceLevel: "Low",
+        allowUnknownParticipantType: true
+      }
+    })
+  });
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(["allow", "review"].includes(body.decision), "expected allow or review");
+  assert(typeof body.allowed === "boolean", "missing allowed boolean");
+  assert(Array.isArray(body.checks), "missing checks");
+});
+
+await test("POST /api/risk/guard unknown wallet defaults to review", async () => {
+  const { response, body } = await request("/api/risk/guard", {
+    method: "POST",
+    body: JSON.stringify({ wallet: unknownRiskWallet, policy: {} })
+  });
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.profileStatus === "no_data", "expected profileStatus=no_data");
+  assert(body.decision === "review", "unknown wallet should review by default");
+  assert(body.allowed === false, "review should not be allowed");
+});
+
+await test("POST /api/risk/guard unknown wallet behavior allow returns allow", async () => {
+  const { response, body } = await request("/api/risk/guard", {
+    method: "POST",
+    body: JSON.stringify({
+      wallet: unknownRiskWallet,
+      policy: { unknownWalletBehavior: "allow", maxRiskScore: 0 }
+    })
+  });
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.profileStatus === "no_data", "expected profileStatus=no_data");
+  assert(body.decision === "allow", "unknown allow policy should allow");
+  assert(body.allowed === true, "allow decision should be allowed");
+});
+
+await test("POST /api/risk/guard unknown wallet behavior block returns block", async () => {
+  const { response, body } = await request("/api/risk/guard", {
+    method: "POST",
+    body: JSON.stringify({
+      wallet: unknownRiskWallet,
+      policy: { unknownWalletBehavior: "block" }
+    })
+  });
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(body.profileStatus === "no_data", "expected profileStatus=no_data");
+  assert(body.decision === "block", "unknown block policy should block");
+  assert(body.allowed === false, "block decision should not be allowed");
+});
+
+await test("POST /api/risk/guard strict maxRiskScore returns block or review", async () => {
+  const { response, body } = await request("/api/risk/guard", {
+    method: "POST",
+    body: JSON.stringify({
+      wallet: "0x8e0a1111111111111111111111111111111125be",
+      policy: {
+        maxRiskScore: 0,
+        allowedRiskTiers: ["Low", "Medium"],
+        minimumConfidenceLevel: "High",
+        allowUnknownParticipantType: false
+      }
+    })
+  });
+  assert(response.status === 200, `expected 200, got ${response.status}`);
+  assert(["block", "review"].includes(body.decision), "expected block or review");
+  assert(body.allowed === false, "strict policy should not allow");
 });
 
 await test("GET /api/resources/search returns resources", async () => {

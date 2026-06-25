@@ -1,5 +1,6 @@
 import { isAddress } from "ethers";
 import { NextResponse, type NextRequest } from "next/server";
+import { isParticipantType } from "@/lib/participants";
 import { createServerRequest, isLicenseType, parseTags } from "@/lib/server/agentMockStore";
 import { trackReputationEvent } from "@/lib/server/reputation/reputationEventStore";
 import { isValidUsdcAmount } from "@/lib/validateUsdcAmount";
@@ -33,16 +34,39 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "INVALID_LICENSE" }, { status: 400 });
   }
 
-  if (!isValidUsdcAmount(body.budgetUSDC)) {
+  const budgetUSDC = body.budgetUSDC;
+
+  if (!isValidUsdcAmount(budgetUSDC)) {
     return NextResponse.json(
       { error: "INVALID_BUDGET_USDC", message: "budgetUSDC must be a positive USDC amount." },
       { status: 400 }
     );
   }
 
-  if (typeof body.requesterAddress !== "string" || !isAddress(body.requesterAddress)) {
+  const requesterAddress = body.requesterAddress;
+
+  if (typeof requesterAddress !== "string" || !isAddress(requesterAddress)) {
     return NextResponse.json({ error: "INVALID_REQUESTER_ADDRESS" }, { status: 400 });
   }
+
+  if (
+    body.operatorAddress &&
+    (typeof body.operatorAddress !== "string" || !isAddress(body.operatorAddress))
+  ) {
+    return NextResponse.json({ error: "INVALID_OPERATOR_ADDRESS" }, { status: 400 });
+  }
+
+  const participantType = isParticipantType(body.participantType)
+    ? body.participantType
+    : undefined;
+  const participantName =
+    typeof body.participantName === "string" && body.participantName.trim()
+      ? body.participantName.trim()
+      : undefined;
+  const operatorAddress =
+    typeof body.operatorAddress === "string" && body.operatorAddress.trim()
+      ? body.operatorAddress.trim()
+      : undefined;
 
   const draft = createServerRequest({
     title: String(body.title),
@@ -50,18 +74,26 @@ export async function POST(request: NextRequest) {
     requirements: String(body.requirements),
     category: String(body.category || "Uncategorized"),
     tags: parseTags(body.tags),
-    budgetUSDC: body.budgetUSDC,
+    budgetUSDC,
     license: body.license,
-    requesterAddress: body.requesterAddress,
+    requesterAddress,
+    participantType,
+    participantName,
+    operatorAddress,
     agentConsumable: Boolean(body.agentConsumable)
   });
 
   trackReputationEvent({
-    walletAddress: body.requesterAddress,
+    walletAddress: requesterAddress,
     eventType: "REQUEST_CREATED",
     requestId: draft.id,
-    amountUSDC: String(body.budgetUSDC),
-    metadata: { category: draft.category }
+    amountUSDC: String(budgetUSDC),
+    metadata: {
+      category: draft.category,
+      participantType: participantType ?? null,
+      participantName: participantName ?? null,
+      operatorAddress: operatorAddress ?? null
+    }
   });
 
   return NextResponse.json(

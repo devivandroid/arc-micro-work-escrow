@@ -16,8 +16,11 @@ const endpoints = [
   ["GET", "/api/resources/{id}", "Receive HTTP 402 payment instructions or an unlocked payload."],
   ["POST", "/api/resources/{id}/verify-payment", "Verify an Arc Testnet USDC transaction proof."],
   ["GET", "/api/download/{resourceId}/{filename}", "Download a private file after proof verification."],
-  ["GET", "/api/reputation/{wallet}", "Query a wallet risk profile and reputation signals."],
-  ["GET", "/api/reputation/model", "Read the preview risk model methodology."],
+  ["GET", "/api/risk/profile/{wallet}", "Query a full participant Risk Intelligence profile."],
+  ["GET", "/api/risk/summary/{wallet}", "Query a compact participant risk summary."],
+  ["GET", "/api/risk/signals/{wallet}", "Query behavioral and risk signals."],
+  ["POST", "/api/risk/guard", "Evaluate a wallet against a client-defined pre-transaction risk policy."],
+  ["GET", "/api/risk/model", "Read the preview Risk Intelligence methodology."],
   ["GET", "/api/requests/search", "Search open requests available to providers."],
   ["POST", "/api/requests/create", "Create a request draft for a custom knowledge asset."],
   ["POST", "/api/requests/{id}/submit", "Submit a delivery payload for a request."]
@@ -113,7 +116,7 @@ export default function AgentApiPage() {
               <pre className="mt-2 max-w-full overflow-hidden whitespace-pre-wrap break-all rounded-lg bg-black/40 p-3 text-xs leading-6 text-slate-300 [overflow-wrap:anywhere]">
                 {`curl -X POST ${appBaseUrl}/api/requests/create \\
   -H "Content-Type: application/json" \\
-  -d '{"title":"Design retrieval schema","description":"Need a retrieval-ready knowledge schema","requirements":"Return JSON schema, reference records, and validation notes","category":"Knowledge Engineering","tags":["Retrieval","JSON"],"budgetUSDC":"4.5","license":"CC-BY-4.0","requesterAddress":"0x4444444444444444444444444444444444444444","agentConsumable":true}'`}
+  -d '{"title":"Design retrieval schema","description":"Need a retrieval-ready knowledge schema","requirements":"Return JSON schema, reference records, and validation notes","category":"Knowledge Engineering","tags":["Retrieval","JSON"],"budgetUSDC":"4.5","license":"CC-BY-4.0","requesterAddress":"0x4444444444444444444444444444444444444444","participantType":"agent","participantName":"RetrievalAgent-01","operatorAddress":"0x4444444444444444444444444444444444444444","agentConsumable":true}'`}
               </pre>
             </div>
 
@@ -122,7 +125,7 @@ export default function AgentApiPage() {
               <pre className="mt-2 max-w-full overflow-hidden whitespace-pre-wrap break-all rounded-lg bg-black/40 p-3 text-xs leading-6 text-slate-300 [overflow-wrap:anywhere]">
                 {`curl -X POST ${appBaseUrl}/api/requests/mcp-integration-for-procurement-agent/submit \\
   -H "Content-Type: application/json" \\
-  -d '{"providerAddress":"0x5555555555555555555555555555555555555555","deliveryText":"Delivery notes and resource links"}'`}
+  -d '{"providerAddress":"0x5555555555555555555555555555555555555555","providerParticipantType":"agent","providerParticipantName":"RetrievalDeliveryAgent-01","deliveryText":"Delivery notes and resource links"}'`}
               </pre>
             </div>
 
@@ -134,10 +137,24 @@ export default function AgentApiPage() {
             </div>
 
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-white">Query wallet risk</p>
+              <p className="text-sm font-semibold text-white">Query Risk Intelligence</p>
               <pre className="mt-2 max-w-full overflow-hidden whitespace-pre-wrap break-all rounded-lg bg-black/40 p-3 text-xs leading-6 text-slate-300 [overflow-wrap:anywhere]">
-                {`curl ${appBaseUrl}/api/reputation/0x8e0a1111111111111111111111111111111125be`}
+                {`curl ${appBaseUrl}/api/risk/profile/0x8e0a1111111111111111111111111111111125be
+curl ${appBaseUrl}/api/risk/summary/0x8e0a1111111111111111111111111111111125be`}
               </pre>
+            </div>
+
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white">Risk Guard pre-check</p>
+              <pre className="mt-2 max-w-full overflow-hidden whitespace-pre-wrap break-all rounded-lg bg-black/40 p-3 text-xs leading-6 text-slate-300 [overflow-wrap:anywhere]">
+                {`curl -X POST ${appBaseUrl}/api/risk/guard \\
+  -H "Content-Type: application/json" \\
+  -d '{"wallet":"0x1234500000000000000000000000000000000000","policy":{"maxRiskScore":40,"allowedRiskTiers":["Low","Medium"],"minimumConfidenceLevel":"Medium","unknownWalletBehavior":"review"}}'`}
+              </pre>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                Unknown wallets return profileStatus = no_data. No data is not high risk; Risk
+                Guard defaults to review unless the client policy chooses allow or block.
+              </p>
             </div>
           </div>
         </div>

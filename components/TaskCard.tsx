@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TaskStatusBadge } from "@/components/TaskStatusBadge";
 import type { EscrowTask } from "@/lib/contracts/microWorkEscrow";
+import { getParticipantBadgeClass, getParticipantLabel } from "@/lib/participants";
 import {
   getTaskDisplayDescription,
   getTaskDisplayTitle,
@@ -53,6 +54,15 @@ export function TaskCard({ task }: TaskCardProps) {
               Manual Access (Escrow)
             </span>
           ) : null}
+          {onChainTask ? (
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${getParticipantBadgeClass(
+                metadata?.participantType
+              )}`}
+            >
+              {getParticipantLabel(metadata?.participantType)}
+            </span>
+          ) : null}
           <TaskStatusBadge status={status} />
         </div>
       </div>
@@ -62,7 +72,7 @@ export function TaskCard({ task }: TaskCardProps) {
           <p>License: {metadata?.license || "Not specified"}</p>
           <p>Type: {metadata?.resourceType || "Custom Service"}</p>
           <p>
-            Requester:{" "}
+            Requester: {metadata?.participantName ? `${metadata.participantName} - ` : ""}
             <a
               href={getExplorerAddressUrl(task.client)}
               target="_blank"

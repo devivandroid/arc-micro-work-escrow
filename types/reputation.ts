@@ -1,3 +1,5 @@
+import type { ParticipantType } from "@/types/resource";
+
 export type ReputationEventType =
   | "RESOURCE_VIEWED"
   | "RESOURCE_PURCHASE_STARTED"
@@ -15,6 +17,9 @@ export type ReputationEventType =
 
 export type RiskTier = "Low" | "Medium" | "High" | "Unknown";
 export type ConfidenceLevel = "Low" | "Medium" | "High";
+export type ActivityLevel = "Dormant" | "Low" | "Normal" | "High";
+export type BehavioralSignalStatus = "Normal" | "Watch" | "Elevated" | "Unknown";
+export type RiskSignalSeverity = "Monitor" | "Watch" | "Elevated" | "Low confidence";
 
 export type ReputationEvent = {
   id: string;
@@ -31,6 +36,9 @@ export type ReputationEvent = {
 
 export type ReputationSummary = {
   wallet: string;
+  participantType?: ParticipantType;
+  participantName?: string;
+  operatorAddress?: string;
   reputationScore: number;
   financialRiskScore: number;
   riskTier: RiskTier;
@@ -49,4 +57,25 @@ export type ReputationSummary = {
   refundRate: number;
   lastActivity: string | null;
   evidenceCount: number;
+  completedActions: number;
+  totalCompletedVolumeUSDC: string;
+  uniqueCounterparties: number;
+  averageTransactionAmountUSDC: string;
+  averageActionsPerDay: string;
+  daysSinceLastActivity: number | null;
+  activityLevel: ActivityLevel;
+  purchaseStartAbandonmentRate: number;
+  escrowCompletionRate: number;
+  downloadAfterPurchaseRate: number;
+  volumeConcentrationRate: number;
+  behavioralSignals: Array<{
+    label: string;
+    value: string;
+    status: BehavioralSignalStatus;
+  }>;
+  riskSignals: Array<{
+    label: string;
+    severity: RiskSignalSeverity;
+    description: string;
+  }>;
 };

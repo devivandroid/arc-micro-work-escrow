@@ -10,9 +10,10 @@ import { TransactionStatus, type TransactionState } from "@/components/Transacti
 import { isEscrowConfigured, useEscrowContract } from "@/hooks/useEscrowContract";
 import { useWallet } from "@/hooks/useWallet";
 import { escrowAbi } from "@/lib/contracts/microWorkEscrow";
+import { isParticipantType } from "@/lib/participants";
 import { isValidUsdcAmount } from "@/lib/validateUsdcAmount";
 import { normalizeWeb3Error } from "@/lib/web3";
-import { licenseValues, resourceTypeValues } from "@/types/resource";
+import { licenseValues, participantTypeValues, resourceTypeValues } from "@/types/resource";
 import type { PublishResourceFormValues } from "@/types/task";
 import { useState } from "react";
 
@@ -21,7 +22,7 @@ export default function NewRequestPage() {
   const { address, isArcTestnet, switchToArcTestnet } = useWallet();
   const { createTask, invalidateTasks } = useEscrowContract();
   const [txState, setTxState] = useState<TransactionState>({ phase: "idle" });
-  const { register, handleSubmit } = useForm<PublishResourceFormValues>({
+  const { register, handleSubmit, watch } = useForm<PublishResourceFormValues>({
     defaultValues: {
       title: "",
       description: "",
@@ -36,9 +37,13 @@ export default function NewRequestPage() {
       lockedContent: "",
       unlockedContentMock: "",
       requirements: "",
-      deadline: ""
+      deadline: "",
+      participantType: "human",
+      participantName: "",
+      operatorAddress: ""
     }
   });
+  const selectedParticipantType = watch("participantType");
   const isTxBusy = ["signature", "submitted", "confirming"].includes(txState.phase);
 
   const onSubmit = async (values: PublishResourceFormValues) => {
@@ -52,6 +57,14 @@ export default function NewRequestPage() {
         phase: "error",
         message:
           "Escrow contract is not configured. Deploy the contract and set NEXT_PUBLIC_ESCROW_CONTRACT."
+      });
+      return;
+    }
+
+    if (values.operatorAddress.trim() && !/^0x[a-fA-F0-9]{40}$/.test(values.operatorAddress.trim())) {
+      setTxState({
+        phase: "error",
+        message: "Enter a valid operator wallet address or leave it blank."
       });
       return;
     }
@@ -82,6 +95,11 @@ export default function NewRequestPage() {
         license: values.license,
         accessType: "manual",
         requesterAddress: address,
+        participantType: isParticipantType(values.participantType)
+          ? values.participantType
+          : "human",
+        participantName: values.participantName.trim() || undefined,
+        operatorAddress: values.operatorAddress.trim() || undefined,
         resourceType: values.resourceType,
         agentConsumable: values.agentConsumable,
         deadline: values.deadline || null,
@@ -215,6 +233,53 @@ export default function NewRequestPage() {
             className="rounded-lg border border-arc-border bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-arc-blue"
             placeholder="Retrieval, Compliance, Agents"
           />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-slate-200">Requester Type</span>
+          <select
+            {...register("participantType")}
+            className="rounded-lg border border-arc-border bg-black/30 px-4 py-3 text-white outline-none transition focus:border-arc-blue"
+          >
+            {participantTypeValues.map((value) => (
+              <option key={value} value={value}>
+                {value === "organization"
+                  ? "Organization"
+                  : value.charAt(0).toUpperCase() + value.slice(1)}
+              </option>
+            ))}
+          </select>
+          {selectedParticipantType === "agent" ? (
+            <span className="text-xs leading-5 text-slate-500">
+              Use this when an autonomous agent or agent-controlled service is requesting work.
+            </span>
+          ) : null}
+          {selectedParticipantType === "organization" ? (
+            <span className="text-xs leading-5 text-slate-500">
+              Use this when a team, company or project is requesting work.
+            </span>
+          ) : null}
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-medium text-slate-200">Requester Name</span>
+          <input
+            {...register("participantName")}
+            className="rounded-lg border border-arc-border bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-arc-blue"
+            placeholder="Autonomous Economy Lab"
+          />
+        </label>
+
+        <label className="grid gap-2 lg:col-span-2">
+          <span className="text-sm font-medium text-slate-200">Operator Wallet (optional)</span>
+          <input
+            {...register("operatorAddress")}
+            className="rounded-lg border border-arc-border bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-arc-blue"
+            placeholder="0x..."
+          />
+          <span className="text-xs leading-5 text-slate-500">
+            Self-declared metadata only. This does not verify identity or wallet ownership.
+          </span>
         </label>
 
         <label className="grid gap-2 lg:col-span-2">

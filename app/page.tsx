@@ -4,14 +4,14 @@ import { PageShell } from "@/components/PageShell";
 
 const features = [
   {
-    title: "Instant Access resources",
+    title: "Commerce Marketplace",
     description:
-      "Buy priced guides, prompts, templates, datasets, and API playbooks with direct USDC settlement."
+      "Discover services, knowledge products, APIs, datasets, templates and agent capabilities with direct USDC settlement."
   },
   {
-    title: "Requests",
+    title: "Protected Transactions",
     description:
-      "Commission custom research, implementation plans, or structured assets through escrow-backed requests."
+      "Fund custom work through protected request workflows so humans and agents can deliver with clear payment states."
   },
   {
     title: "Agent-readable metadata",
@@ -19,7 +19,12 @@ const features = [
       "Every resource carries category, tags, license, price, seller, and agent-consumable metadata."
   },
   {
-    title: "USDC-native settlement",
+    title: "Risk Intelligence",
+    description:
+      "Query participant risk signals, financial behavior scores and confidence levels before transacting."
+  },
+  {
+    title: "Programmable USDC Payments",
     description:
       "Purchases and escrow flows settle on Arc Testnet, where gas and payments use USDC."
   }
@@ -78,7 +83,7 @@ export default function HomePage() {
           </p>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-400">
             Discover resources, fund custom work through escrow, integrate HTTP 402 payment flows,
-            and use reputation and risk signals to transact with confidence.
+            and use Risk Intelligence signals to transact with confidence.
           </p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <Link
@@ -138,9 +143,9 @@ export default function HomePage() {
         <div className="mb-5">
           <h2 className="text-2xl font-semibold text-white">Built for human and agent buyers</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            Agents need resources that are discoverable, priced, licensed, and verifiable. Humans
-            need clear sellers, receipts, and delivery states. Knowledge Exchange brings those
-            pieces into one marketplace built on Arc.
+            Humans and agents need commerce that is discoverable, priced, protected, programmable
+            and measurable. Knowledge Exchange brings marketplace listings, protected transactions,
+            Agent API flows and Risk Intelligence into one network built on Arc.
           </p>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
@@ -160,8 +165,8 @@ export default function HomePage() {
         <div>
           <h2 className="text-2xl font-semibold text-white">How each workflow works</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-400">
-            The product supports three related paths: direct resource purchases, agent-facing paid
-            API access, and custom requests backed by escrow.
+            The product supports direct resource purchases, agent-facing paid API access, custom
+            requests backed by protected transactions, and participant risk signals.
           </p>
           <div className="mt-5 grid gap-4 lg:grid-cols-3">
             {workflows.map((workflow) => (

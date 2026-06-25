@@ -4,15 +4,79 @@
 
 **Built on Arc Testnet**
 
-Knowledge Exchange is a programmable marketplace for structured knowledge assets. Developers, teams, and autonomous agents can buy downloadable resources, fund custom requests through escrow, consume HTTP 402 payment flows, and query wallet risk signals through the Risk API.
+Knowledge Exchange is programmable commerce infrastructure for humans and autonomous agents. Developers, teams, and agents can buy resources and services, protect custom transactions, consume HTTP 402 payment flows, and query Risk Intelligence signals with programmable USDC payments.
+
+Knowledge Exchange is an independent project built on Arc Testnet and uses USDC for programmable payments. This project is not affiliated with, endorsed by, or officially supported by Circle or Arc.
 
 > This is demo software running on Arc Testnet. It is not audited and must not be used with real funds.
+
+## Architecture
+
+Knowledge Exchange is organized as a layered commerce platform with reusable Risk Intelligence services.
+
+- [System Context Diagram](docs/architecture/system-context.md)
+- [Component Diagram](docs/architecture/component-diagram.md)
+- [Sequence Diagram](docs/architecture/sequence-diagram.md)
+- [Deployment Diagram](docs/architecture/deployment-diagram.md)
+
+```mermaid
+flowchart TB
+  subgraph web["Knowledge Exchange Web Application"]
+    marketplace["Marketplace"]
+    requests["Requests"]
+    protected["Protected Transactions"]
+    activity["My Activity"]
+    agentApi["Agent API"]
+  end
+
+  subgraph risk["Risk Intelligence Engine"]
+    data["Data Sources"]
+    features["Feature Layer"]
+    scoring["Risk Scoring"]
+    signals["Behavioral Signals"]
+    guard["Risk Guard"]
+  end
+
+  publicApis["Public Risk Intelligence APIs"]
+  sdk["Knowledge Exchange TypeScript SDK"]
+  sdkMethods["getProfile()\ngetSummary()\ngetSignals()\nevaluateTransactionRisk()\ncanTransactWith()\nisRiskAtOrBelow()\nisRiskBelow()\nisRiskAbove()\nhasRiskData()"]
+
+  postgres["PostgreSQL"]
+  ipfs["IPFS"]
+  arc["Arc"]
+  usdc["USDC"]
+
+  marketplace -->|"resource views, purchases, downloads"| data
+  requests -->|"request events and delivery events"| data
+  protected -->|"funding and release events"| data
+  activity -->|"participant history"| data
+  agentApi -->|"HTTP 402 commerce events"| data
+
+  data --> features
+  features --> scoring
+  features --> signals
+  scoring --> guard
+  signals --> guard
+
+  risk --> publicApis
+  publicApis --> sdk
+  sdk --> sdkMethods
+
+  protected -->|"settlement"| arc
+  marketplace -->|"direct ERC-20 transfers"| usdc
+  protected -->|"USDC protected settlement"| usdc
+  usdc --> arc
+
+  data -. "future persistent event store" .-> postgres
+  marketplace -. "future durable resource storage" .-> ipfs
+  requests -. "future delivery artifacts" .-> ipfs
+```
 
 ## Live Demo
 
 [https://knowledge-exchange.fly.dev](https://knowledge-exchange.fly.dev/)
 
-Try Instant Access resources, downloadable datasets, escrow-backed requests, HTTP 402 Agent API flows and Risk API endpoints.
+Try Commerce Marketplace resources, downloadable datasets, protected request workflows, HTTP 402 Agent API flows and Risk Intelligence endpoints.
 
 ## Screenshots
 
@@ -40,11 +104,11 @@ HTTP 402 programmable commerce flow for autonomous clients and agent integration
 
 ![Agent API documentation](docs/screenshots/agent-api.png)
 
-### Risk API
+### Risk Intelligence
 
-Wallet and agent risk signals based on Knowledge Exchange activity.
+Wallet, agent and organization risk signals based on Knowledge Exchange activity.
 
-![Agent Risk API](docs/screenshots/risk-api.png)
+![Risk Intelligence dashboard](docs/screenshots/risk-api.png)
 
 ### Requests
 
@@ -56,7 +120,7 @@ Escrow-backed custom knowledge work for specialized deliverables.
 
 Knowledge assets are difficult for agents to discover, price, license, purchase and verify.
 
-Knowledge Exchange combines Instant Access resources, escrow-backed custom work, HTTP 402 programmable payments, downloadable assets and risk signals into one marketplace built on Arc.
+Knowledge Exchange combines a Commerce Marketplace, protected custom transactions, HTTP 402 programmable payments, downloadable assets and Risk Intelligence signals into one commerce network built on Arc.
 
 ## GitHub Repository
 
@@ -66,13 +130,33 @@ Knowledge Exchange combines Instant Access resources, escrow-backed custom work,
 
 Knowledge Exchange combines five product surfaces:
 
-- **Instant Access**: buyers pay sellers directly in ERC-20 USDC and unlock existing resources such as datasets, benchmark packages, guides, prompts, runbooks, templates, and code assets.
+- **Commerce Marketplace**: buyers pay sellers directly in ERC-20 USDC and unlock existing resources such as datasets, benchmark packages, guides, prompts, runbooks, templates, services, APIs, and code assets.
 - **Downloadable Assets**: premium resources can expose file metadata before purchase and authenticated download links after payment verification.
-- **Requests**: requesters fund custom knowledge work through USDC escrow, assign a provider, review delivery, and release funds after approval.
+- **Protected Transactions**: requesters fund custom work through USDC escrow, assign a provider, review delivery, and release funds after approval.
 - **Agent API**: autonomous clients can discover resources, receive `402 Payment Required`, pay with USDC, verify the transaction, and retrieve structured payloads.
-- **Risk API**: builders can query preview wallet risk profiles, reputation signals, financial behavior scores, risk tiers, and confidence levels based on Knowledge Exchange activity.
+- **Risk Intelligence**: builders can query preview participant risk profiles, reputation signals, financial behavior scores, risk tiers, and confidence levels based on Knowledge Exchange activity.
 
 The current version keeps the working escrow contract flow for Requests. The fulfillment model is Manual Access (Escrow). Instant Access performs direct ERC-20 USDC transfers on Arc Testnet and unlocks content locally until durable private storage is added.
+
+## Participant Types
+
+Knowledge Exchange supports self-declared participant metadata across marketplace resources,
+requests, and preview API responses:
+
+- **Human**: an individual seller, requester, provider, researcher, or builder.
+- **Agent**: an autonomous agent or agent-controlled service participating in commerce.
+- **Organization**: a team, lab, company, project, or collective operating through a wallet.
+
+Participant metadata can include a display name, participant type, and optional operator wallet.
+This helps describe Human -> Human, Human -> Agent, Agent -> Human, and Agent -> Agent commerce
+without changing payment or escrow logic.
+
+Current limitations:
+
+- Participant type is self-declared metadata.
+- It does not provide KYC, ENS verification, identity attestation, or wallet ownership proof.
+- Risk Intelligence responses return `unknown` when participant metadata is unavailable.
+- Future releases may add verified identities, attestations, and persistent participant profiles.
 
 ## What It Does
 
@@ -100,11 +184,11 @@ Important precision note:
 
 ## Features
 
-- **Marketplace** for curated Instant Access resources from independent creators.
+- **Commerce Marketplace** for curated Instant Access resources, services, datasets, templates and API playbooks from independent creators.
 - **Downloadable assets** with file metadata, authenticated download links, and payment receipts.
-- **Requests / Escrow** for custom knowledge work funded with USDC on Arc Testnet.
+- **Protected Transactions** for custom work funded with USDC escrow on Arc Testnet.
 - **Agent API** with HTTP 402 payment instructions, transaction verification, and structured payload retrieval.
-- **Risk API** for preview wallet risk profiles, reputation signals, confidence levels, and evidence metrics.
+- **Risk Intelligence** for preview participant risk profiles, reputation signals, confidence levels, and evidence metrics.
 - **Ratings** for purchased Instant Access resources.
 - **Arc Testnet support** with centralized chain metadata, USDC configuration, ArcScan links, and Fly.io deployment.
 
@@ -447,13 +531,21 @@ Example downloadable resource response:
 }
 ```
 
-## Agent Risk API
+## Risk Intelligence
 
-Knowledge Exchange includes a preview Agent Risk API for wallets and agents participating in paid knowledge commerce.
+Knowledge Exchange includes preview Risk Intelligence for humans, agents and organizations
+participating in paid knowledge commerce.
 
 Positioning:
 
-> Risk and reputation signals for wallets and agents participating in programmable commerce on Arc.
+> Risk and reputation signals for humans, agents and organizations participating in Knowledge Exchange activity on Arc.
+
+Engine architecture:
+
+- `lib/server/risk-intelligence/types.ts` defines the canonical `RiskProfile` output.
+- `lib/server/risk-intelligence/calculateRiskProfile.ts` transforms Knowledge Exchange events into participant-aware profiles.
+- `lib/server/risk-intelligence/riskSignals.ts` normalizes behavioral signals, risk signals, evidence and limitations.
+- Existing `/api/reputation/*` routes return the richer profile while preserving backward-compatible aliases for older clients.
 
 Endpoints:
 
@@ -464,7 +556,134 @@ GET /api/reputation/events?limit=25
 GET /api/reputation/model
 ```
 
-The model is intentionally transparent. The financial behavior score starts at 500, adds points for successful purchases, verified payments, downloads, escrow activity and released funds, and penalizes cancelled requests or purchase starts without completion. The API returns reputation signals, financial behavior score, risk tier, confidence level and evidence metrics.
+## Public Risk Intelligence Service
+
+External Arc builders, humans and autonomous agents can consume participant-aware risk
+profiles through the public Risk Intelligence Service routes:
+
+```txt
+GET /api/risk/profile/:wallet
+GET /api/risk/summary/:wallet
+GET /api/risk/signals/:wallet
+GET /api/risk/model
+GET /api/risk/participants
+```
+
+Compact summary example:
+
+```bash
+curl https://knowledge-exchange.fly.dev/api/risk/summary/0x8e0a1111111111111111111111111111111125be
+```
+
+The `/api/risk/profile/:wallet` endpoint returns the full participant risk profile. The
+`/api/risk/summary/:wallet` endpoint is optimized for lightweight integrations. The
+`/api/risk/signals/:wallet` endpoint returns behavioral and risk signals only. Existing
+`/api/reputation/*` endpoints remain available as backward-compatible aliases.
+
+## Risk Intelligence SDK
+
+Builders can use the internal TypeScript SDK in `lib/sdk/risk-intelligence/` to query the
+public Risk Intelligence Service from apps, scripts or autonomous agent workflows.
+
+```ts
+import { RiskIntelligenceClient } from "@/lib/sdk/risk-intelligence";
+
+const client = new RiskIntelligenceClient({
+  baseUrl: "https://knowledge-exchange.fly.dev"
+});
+
+const profile = await client.getProfile(wallet);
+const summary = await client.getSummary(wallet);
+const signals = await client.getSignals(wallet);
+const participants = await client.listParticipants({ limit: 10 });
+const model = await client.getModel();
+```
+
+The SDK is internal to this repository for now and is not published to npm. Builder examples live
+in `examples/risk-intelligence/`, and the integration guide lives in `docs/risk-intelligence-sdk.md`.
+It uses native `fetch`, has typed responses, and keeps the same preview limitations as the public
+API.
+
+## Risk Guard
+
+Risk Guard helps apps, humans and autonomous agents validate participant risk before initiating a
+transaction. It does not decide for the user; it applies the client application's own risk policy.
+
+```ts
+const allowed = await client.canTransactWith(wallet, {
+  maxRiskScore: 40,
+  allowedRiskTiers: ["Low", "Medium"],
+  minimumConfidenceLevel: "Medium",
+  allowUnknownParticipantType: false,
+  unknownWalletBehavior: "review"
+});
+```
+
+The API endpoint is:
+
+```txt
+POST /api/risk/guard
+```
+
+Risk Guard is based only on Knowledge Exchange activity. It is not AML, KYC, sanctions, fraud or
+compliance screening.
+
+### Unknown wallets and no-data profiles
+
+Risk Intelligence is currently based on Knowledge Exchange activity. A wallet with no observed
+activity returns `profileStatus: "no_data"`, `riskTier: "Unknown"`, `confidenceLevel: "Low"` and
+null numeric scores.
+
+No data is not high risk. Risk Guard defaults unknown wallets to `review`, and clients can
+configure `unknownWalletBehavior` as `allow`, `review` or `block`.
+
+```ts
+const decision = await client.evaluateTransactionRisk(wallet, {
+  maxRiskScore: 40,
+  allowedRiskTiers: ["Low", "Medium"],
+  minimumConfidenceLevel: "Medium",
+  unknownWalletBehavior: "review"
+});
+
+if (decision.decision === "allow") {
+  // Continue transaction.
+}
+
+if (decision.decision === "review") {
+  // Ask for human confirmation or additional evidence.
+}
+
+if (decision.decision === "block") {
+  // Do not proceed.
+}
+```
+
+Limitations:
+
+- Knowledge Exchange activity only.
+- Preview model.
+- Not an official Arc or Circle score.
+- No authentication or API keys yet.
+- No production-grade compliance screening.
+
+Planned next data source:
+
+- **Arc Network Activity Adapter**: future versions may optionally enrich profiles with Arc Testnet wallet activity signals beyond Knowledge Exchange events, such as wallet age, transaction count, unique counterparties, last network activity, contract interaction count, estimated USDC activity and network activity level.
+
+The model is intentionally transparent. The financial behavior score starts at 500, adds points
+for successful payments, verified payments, downloads, escrow funding, submitted deliveries,
+released funds, counterparty diversity and completed volume. It reduces score for cancelled
+requests or purchase starts without completion.
+
+The API returns:
+
+- participant-aware risk profiles with participant type, participant name and operator wallet when available
+- financial behavior score from 0 to 1000
+- risk score from 0 to 100
+- risk tier, confidence level and activity level
+- activity metrics such as completed volume, completed actions, unique counterparties and average transaction amount
+- behavioral signals such as payment completion, purchase abandonment, escrow completion and activity recency
+- explainable risk signals such as limited evidence, dormant participant or counterparty concentration
 
 Scope:
 
@@ -485,7 +704,7 @@ Scope:
 - HTTP 402 verification is stateless and txHash-based.
 - No replay protection, API keys, sessions, or production authentication yet.
 - Ratings are MVP/local preview data and are not durable across browsers or devices.
-- Risk API signals are based only on Knowledge Exchange activity and are not official Arc or Circle scores.
+- Risk Intelligence signals are based only on Knowledge Exchange activity and are not official Arc or Circle scores.
 - Escrow funding, provider assignment, delivery, and release still require wallet interaction.
 - Request metadata and delivery data may be public if written on-chain; do not submit private, regulated, or confidential content.
 
@@ -728,6 +947,7 @@ Requests:
 
 ## Roadmap
 
+- Planned: Arc Network Activity Adapter for optional Arc Testnet wallet activity signals beyond Knowledge Exchange events.
 - Arc-wide reputation layer.
 - Agent Risk Network.
 - Persistent reputation storage.
@@ -756,7 +976,7 @@ Contributions should keep the project safe, readable, and Arc-aligned:
 - Do not commit generated build output, `.env` files, private keys, wallet files, seed phrases, API keys, or deployment secrets.
 - Keep ERC-20 USDC accounting at 6 decimals.
 - Keep Arc Testnet network metadata centralized in `lib/chains/arcTestnet.ts`.
-- Prefer small, focused changes that preserve the existing Instant Access, HTTP 402, Risk API, and Requests escrow flows.
+- Prefer small, focused changes that preserve the existing Commerce Marketplace, HTTP 402, Risk Intelligence, and protected request flows.
 
 ## Security Disclaimer
 

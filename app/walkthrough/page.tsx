@@ -33,18 +33,18 @@ const walkthroughFlows = [
     outcome: "The API returns JSON, Markdown, or authenticated file metadata after stateless transaction verification."
   },
   {
-    title: "Risk API",
+    title: "Risk Intelligence",
     description:
       "Apps and agents query preview risk signals based on Knowledge Exchange activity.",
     steps: [
       "A wallet buys resources, verifies payments, downloads files, or participates in requests.",
       "Knowledge Exchange records lightweight marketplace events.",
       "The preview model calculates reputation signals, financial behavior score, risk tier, confidence, and evidence count.",
-      "Builders query /api/reputation/{wallet} or /api/reputation/model.",
+      "Builders query /api/risk/profile/{wallet}, /api/risk/summary/{wallet}, /api/risk/signals/{wallet}, or /api/risk/model.",
       "Risk results can route high-risk wallets to manual review."
     ],
     outcome:
-      "Builders get an explainable Agent Risk API without claiming official Arc-wide scoring."
+      "Builders get explainable Risk Intelligence without claiming official Arc-wide scoring."
   },
   {
     title: "Requests",

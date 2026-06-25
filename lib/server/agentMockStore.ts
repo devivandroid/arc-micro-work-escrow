@@ -6,6 +6,7 @@ import {
   resourceTypeValues,
   type InstantResource,
   type LicenseType,
+  type ParticipantType,
   type ResourceType
 } from "@/types/resource";
 
@@ -19,7 +20,13 @@ export type AgentRequestDraft = {
   budgetUSDC: string;
   license: LicenseType;
   requesterAddress: string;
+  participantType?: ParticipantType;
+  participantName?: string;
+  operatorAddress?: string;
   providerAddress?: string;
+  providerParticipantType?: ParticipantType;
+  providerParticipantName?: string;
+  providerOperatorAddress?: string;
   status: "Draft" | "Open" | "Submitted";
   agentConsumable: boolean;
   createdAt: string;
@@ -60,6 +67,9 @@ function getStore(): Store {
           budgetUSDC: "7.2",
           license: "Apache-2.0",
           requesterAddress: "0x4444444444444444444444444444444444444444",
+          participantType: "organization",
+          participantName: "Autonomous Economy Lab",
+          operatorAddress: "0x4444444444444444444444444444444444444444",
           status: "Open",
           agentConsumable: true,
           createdAt: new Date().toISOString()
@@ -76,6 +86,9 @@ function getStore(): Store {
           budgetUSDC: "7.8",
           license: "CC-BY-4.0",
           requesterAddress: "0x4444444444444444444444444444444444444444",
+          participantType: "organization",
+          participantName: "Regulatory Systems Lab",
+          operatorAddress: "0x4444444444444444444444444444444444444444",
           status: "Open",
           agentConsumable: true,
           createdAt: new Date().toISOString()
@@ -92,6 +105,8 @@ function getStore(): Store {
           budgetUSDC: "5.9",
           license: "Commercial Use Allowed",
           requesterAddress: "0x4444444444444444444444444444444444444444",
+          participantType: "human",
+          participantName: "Independent Governance Researcher",
           status: "Open",
           agentConsumable: true,
           createdAt: new Date().toISOString()
@@ -108,6 +123,9 @@ function getStore(): Store {
           budgetUSDC: "4.1",
           license: "Personal Use Only",
           requesterAddress: "0x4444444444444444444444444444444444444444",
+          participantType: "agent",
+          participantName: "SupportAgent-QA",
+          operatorAddress: "0x4444444444444444444444444444444444444444",
           status: "Open",
           agentConsumable: true,
           createdAt: new Date().toISOString()
@@ -124,6 +142,9 @@ function getStore(): Store {
           budgetUSDC: "5.2",
           license: "MIT",
           requesterAddress: "0x4444444444444444444444444444444444444444",
+          participantType: "organization",
+          participantName: "Structured Finance Ops",
+          operatorAddress: "0x4444444444444444444444444444444444444444",
           status: "Open",
           agentConsumable: true,
           createdAt: new Date().toISOString()
@@ -140,6 +161,9 @@ function getStore(): Store {
           budgetUSDC: "4.8",
           license: "CC0",
           requesterAddress: "0x4444444444444444444444444444444444444444",
+          participantType: "agent",
+          participantName: "GovernanceAgent-Review",
+          operatorAddress: "0x4444444444444444444444444444444444444444",
           status: "Open",
           agentConsumable: true,
           createdAt: new Date().toISOString()
@@ -193,12 +217,18 @@ export function createServerRequest(input: Omit<AgentRequestDraft, "id" | "statu
 export function submitServerRequestDelivery({
   requestId,
   providerAddress,
+  providerParticipantType,
+  providerParticipantName,
+  providerOperatorAddress,
   deliveryText,
   deliveryURI,
   deliveryHash
 }: {
   requestId: string;
   providerAddress: string;
+  providerParticipantType?: ParticipantType;
+  providerParticipantName?: string;
+  providerOperatorAddress?: string;
   deliveryText: string;
   deliveryURI?: string;
   deliveryHash?: string;
@@ -225,6 +255,9 @@ export function submitServerRequestDelivery({
   };
 
   request.providerAddress = providerAddress;
+  request.providerParticipantType = providerParticipantType;
+  request.providerParticipantName = providerParticipantName;
+  request.providerOperatorAddress = providerOperatorAddress;
   request.status = "Submitted";
   request.delivery = delivery;
   return { request, delivery };

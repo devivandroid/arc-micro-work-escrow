@@ -1,8 +1,9 @@
 import { isAddress } from "ethers";
 import { NextResponse } from "next/server";
-import { calculateReputation } from "@/lib/server/reputation/calculateReputation";
-import { getEvents } from "@/lib/server/reputation/reputationEventStore";
-import { toReputationApiResponse } from "@/lib/server/reputation/reputationResponse";
+import {
+  getRiskProfile,
+  toPublicRiskProfileResponse
+} from "@/lib/server/risk-intelligence/riskService";
 
 type ReputationWalletContext = {
   params: Promise<{ wallet: string }>;
@@ -20,5 +21,5 @@ export async function GET(_request: Request, context: ReputationWalletContext) {
     );
   }
 
-  return NextResponse.json(toReputationApiResponse(calculateReputation(wallet, getEvents())));
+  return NextResponse.json(toPublicRiskProfileResponse(getRiskProfile(wallet)));
 }

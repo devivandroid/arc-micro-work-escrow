@@ -1,5 +1,12 @@
 export type AccessType = "instant" | "manual";
 export type DeliveryType = "inline" | "download";
+export type ParticipantType = "human" | "agent" | "organization";
+
+export type ParticipantMetadata = {
+  participantType?: ParticipantType;
+  participantName?: string;
+  operatorAddress?: string;
+};
 
 export type ResourceFile = {
   filename: string;
@@ -44,6 +51,9 @@ export type InstantResource = {
   featured?: boolean;
   featuredLabel?: string;
   sellerName?: string;
+  participantType?: ParticipantType;
+  participantName?: string;
+  operatorAddress?: string;
   sellerAddress: string;
   deliveryType: DeliveryType;
   contentURI?: string;
@@ -65,6 +75,12 @@ export type ManualRequestMetadata = {
   accessType: "manual";
   requesterAddress?: string;
   providerAddress?: string;
+  participantType?: ParticipantType;
+  participantName?: string;
+  operatorAddress?: string;
+  providerParticipantType?: ParticipantType;
+  providerParticipantName?: string;
+  providerOperatorAddress?: string;
   deliveryHash?: string;
   metadataURI?: string;
   deadline?: string | null;
@@ -98,3 +114,5 @@ export const resourceTypeValues: ResourceType[] = [
   "Template",
   "Custom Service"
 ];
+
+export const participantTypeValues: ParticipantType[] = ["human", "agent", "organization"];

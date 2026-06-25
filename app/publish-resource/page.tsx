@@ -10,10 +10,12 @@ import { PageShell } from "@/components/PageShell";
 import { TransactionStatus, type TransactionState } from "@/components/TransactionStatus";
 import { useWallet } from "@/hooks/useWallet";
 import { createLocalResourceId, saveLocalResource } from "@/lib/localResources";
+import { isParticipantType } from "@/lib/participants";
 import { isValidUsdcAmount } from "@/lib/validateUsdcAmount";
 import { normalizeWeb3Error } from "@/lib/web3";
 import {
   licenseValues,
+  participantTypeValues,
   resourceTypeValues,
   type InstantResource,
   type ResourceFile
@@ -25,7 +27,7 @@ export default function PublishResourcePage() {
   const { address } = useWallet();
   const [txState, setTxState] = useState<TransactionState>({ phase: "idle" });
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const { register, handleSubmit, setValue } = useForm<PublishResourceFormValues>({
+  const { register, handleSubmit, setValue, watch } = useForm<PublishResourceFormValues>({
     defaultValues: {
       title: "",
       description: "",
@@ -41,9 +43,13 @@ export default function PublishResourcePage() {
       unlockedContentMock: "",
       deliveryType: "inline",
       requirements: "",
-      deadline: ""
+      deadline: "",
+      participantType: "human",
+      participantName: "",
+      operatorAddress: ""
     }
   });
+  const selectedParticipantType = watch("participantType");
   const isTxBusy = ["signature", "submitted", "confirming"].includes(txState.phase);
 
   useEffect(() => {
@@ -67,6 +73,16 @@ export default function PublishResourcePage() {
       setTxState({
         phase: "error",
         message: "Enter a valid seller wallet address before publishing."
+      });
+      return;
+    }
+
+    const operatorAddress = values.operatorAddress.trim();
+
+    if (operatorAddress && !isAddress(operatorAddress)) {
+      setTxState({
+        phase: "error",
+        message: "Enter a valid operator wallet address or leave it blank."
       });
       return;
     }
@@ -132,6 +148,12 @@ export default function PublishResourcePage() {
         license: values.license as InstantResource["license"],
         accessType: "instant",
         deliveryType,
+        sellerName: values.participantName.trim() || undefined,
+        participantType: isParticipantType(values.participantType)
+          ? values.participantType
+          : "human",
+        participantName: values.participantName.trim() || undefined,
+        operatorAddress: operatorAddress || undefined,
         sellerAddress,
         lockedContentURI: values.lockedContent.trim() || "local://browser-only-resource",
         previewText: values.previewText.trim() || values.description.trim(),
@@ -254,6 +276,54 @@ export default function PublishResourcePage() {
             className="w-full min-w-0 rounded-lg border border-arc-border bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-arc-blue"
             placeholder="0x..."
           />
+        </label>
+
+        <label className="grid min-w-0 gap-2">
+          <span className="text-sm font-medium text-slate-200">Seller Type</span>
+          <select
+            {...register("participantType")}
+            className="w-full min-w-0 rounded-lg border border-arc-border bg-black/30 px-4 py-3 text-white outline-none transition focus:border-arc-blue"
+          >
+            {participantTypeValues.map((value) => (
+              <option key={value} value={value}>
+                {value === "organization"
+                  ? "Organization"
+                  : value.charAt(0).toUpperCase() + value.slice(1)}
+              </option>
+            ))}
+          </select>
+          {selectedParticipantType === "agent" ? (
+            <span className="text-xs leading-5 text-slate-500">
+              Use this when an autonomous agent or agent-controlled service is selling this
+              resource.
+            </span>
+          ) : null}
+          {selectedParticipantType === "organization" ? (
+            <span className="text-xs leading-5 text-slate-500">
+              Use this when a team, company or project is selling this resource.
+            </span>
+          ) : null}
+        </label>
+
+        <label className="grid min-w-0 gap-2">
+          <span className="text-sm font-medium text-slate-200">Seller Display Name</span>
+          <input
+            {...register("participantName")}
+            className="w-full min-w-0 rounded-lg border border-arc-border bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-arc-blue"
+            placeholder="ResearchAgent-01"
+          />
+        </label>
+
+        <label className="grid min-w-0 gap-2 lg:col-span-2">
+          <span className="text-sm font-medium text-slate-200">Operator Wallet (optional)</span>
+          <input
+            {...register("operatorAddress")}
+            className="w-full min-w-0 rounded-lg border border-arc-border bg-black/30 px-4 py-3 text-white outline-none transition placeholder:text-slate-600 focus:border-arc-blue"
+            placeholder="0x..."
+          />
+          <span className="text-xs leading-5 text-slate-500">
+            Self-declared metadata only. This does not verify identity or wallet ownership.
+          </span>
         </label>
 
         <label className="grid min-w-0 gap-2 lg:col-span-2">

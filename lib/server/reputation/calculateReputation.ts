@@ -1,4 +1,12 @@
-import type { ReputationEvent, ReputationSummary, RiskTier } from "@/types/reputation";
+import { isParticipantType } from "@/lib/participants";
+import type {
+  ActivityLevel,
+  BehavioralSignalStatus,
+  ReputationEvent,
+  ReputationSummary,
+  RiskSignalSeverity,
+  RiskTier
+} from "@/types/reputation";
 
 const positiveEvents = new Set([
   "RESOURCE_PURCHASED",
@@ -18,23 +26,115 @@ function toNumber(value?: string): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
-function getRiskTier(reputationScore: number, evidenceCount: number): RiskTier {
+function getRiskTier(riskScore: number, evidenceCount: number): RiskTier {
   if (evidenceCount === 0) return "Unknown";
-  if (reputationScore >= 750 && evidenceCount >= 5) return "Low";
-  if (reputationScore >= 500) return "Medium";
+  if (riskScore <= 24) return "Low";
+  if (riskScore <= 59) return "Medium";
   return "High";
 }
 
 function getConfidence(evidenceCount: number): "Low" | "Medium" | "High" {
-  if (evidenceCount >= 12) return "High";
+  if (evidenceCount > 20) return "High";
   if (evidenceCount >= 5) return "Medium";
   return "Low";
+}
+
+function formatPercent(value: number): string {
+  return `${Math.round(value * 100)}%`;
+}
+
+function getSignalStatus(value: number, watchAt: number, elevatedAt: number): BehavioralSignalStatus {
+  if (!Number.isFinite(value)) return "Unknown";
+  if (value >= elevatedAt) return "Elevated";
+  if (value >= watchAt) return "Watch";
+  return "Normal";
+}
+
+function getActivityLevel({
+  evidenceCount,
+  averageActionsPerDay,
+  daysSinceLastActivity
+}: {
+  evidenceCount: number;
+  averageActionsPerDay: number;
+  daysSinceLastActivity: number | null;
+}): ActivityLevel {
+  if (evidenceCount === 0 || (daysSinceLastActivity !== null && daysSinceLastActivity > 30)) {
+    return "Dormant";
+  }
+  if (averageActionsPerDay > 5) return "High";
+  if (averageActionsPerDay >= 1) return "Normal";
+  return "Low";
+}
+
+function buildEmptySummary(
+  wallet: string,
+  participant: Pick<ReputationSummary, "participantType" | "participantName" | "operatorAddress">
+): ReputationSummary {
+  return {
+    wallet,
+    ...participant,
+    reputationScore: 0,
+    financialRiskScore: 0,
+    riskTier: "Unknown",
+    confidenceLevel: "Low",
+    paymentSuccessRate: 0,
+    totalVolumeUSDC: "0.00",
+    successfulPayments: 0,
+    failedPayments: 0,
+    resourcesPurchased: 0,
+    resourcesDownloaded: 0,
+    requestsCreated: 0,
+    escrowsFunded: 0,
+    deliveriesSubmitted: 0,
+    fundsReleased: 0,
+    disputeRate: 0,
+    refundRate: 0,
+    lastActivity: null,
+    evidenceCount: 0,
+    completedActions: 0,
+    totalCompletedVolumeUSDC: "0.00",
+    uniqueCounterparties: 0,
+    averageTransactionAmountUSDC: "0.00",
+    averageActionsPerDay: "0.0",
+    daysSinceLastActivity: null,
+    activityLevel: "Dormant",
+    purchaseStartAbandonmentRate: 0,
+    escrowCompletionRate: 0,
+    downloadAfterPurchaseRate: 0,
+    volumeConcentrationRate: 0,
+    behavioralSignals: [
+      { label: "Evidence count", value: "0 events", status: "Unknown" },
+      { label: "Activity recency", value: "No activity", status: "Unknown" }
+    ],
+    riskSignals: [
+      {
+        label: "Limited evidence",
+        severity: "Low confidence",
+        description: "Risk profile has no Knowledge Exchange activity yet."
+      }
+    ]
+  };
 }
 
 export function calculateReputation(wallet: string, events: ReputationEvent[]): ReputationSummary {
   const walletEvents = events.filter(
     (event) => event.walletAddress.toLowerCase() === wallet.toLowerCase()
   );
+  const participantMetadata = walletEvents.find((event) =>
+    isParticipantType(event.metadata?.participantType)
+  )?.metadata;
+  const participantType = isParticipantType(participantMetadata?.participantType)
+    ? participantMetadata.participantType
+    : undefined;
+  const participantName =
+    typeof participantMetadata?.participantName === "string"
+      ? participantMetadata.participantName
+      : undefined;
+  const operatorAddress =
+    typeof participantMetadata?.operatorAddress === "string"
+      ? participantMetadata.operatorAddress
+      : undefined;
   const evidenceCount = walletEvents.length;
   const successfulPayments = walletEvents.filter((event) =>
     ["RESOURCE_PURCHASED", "PAYMENT_VERIFIED", "FUNDS_RELEASED"].includes(event.eventType)
@@ -49,7 +149,14 @@ export function calculateReputation(wallet: string, events: ReputationEvent[]): 
     (event) => event.eventType === "RESOURCE_PURCHASED"
   ).length;
   const incompletePurchases = Math.max(0, startedPurchases - completedPurchases);
-  const totalVolume = walletEvents.reduce((sum, event) => sum + toNumber(event.amountUSDC), 0);
+  const completedVolumeEvents = walletEvents.filter((event) =>
+    ["RESOURCE_PURCHASED", "FUNDS_RELEASED"].includes(event.eventType)
+  );
+  const totalCompletedVolume = completedVolumeEvents.reduce(
+    (sum, event) => sum + toNumber(event.amountUSDC),
+    0
+  );
+  const totalVolume = totalCompletedVolume;
   const resourcesPurchased = completedPurchases;
   const resourcesDownloaded = walletEvents.filter(
     (event) => event.eventType === "RESOURCE_DOWNLOADED"
@@ -60,29 +167,25 @@ export function calculateReputation(wallet: string, events: ReputationEvent[]): 
     (event) => event.eventType === "DELIVERY_SUBMITTED"
   ).length;
   const fundsReleased = walletEvents.filter((event) => event.eventType === "FUNDS_RELEASED").length;
+  const completedActions = walletEvents.filter((event) => positiveEvents.has(event.eventType)).length;
+  const uniqueCounterparties = new Set(
+    walletEvents
+      .map((event) => event.counterpartyAddress?.toLowerCase())
+      .filter((value): value is string => Boolean(value))
+  ).size;
+  const counterpartyVolumes = new Map<string, number>();
+  for (const event of completedVolumeEvents) {
+    const counterparty = event.counterpartyAddress?.toLowerCase();
+    if (counterparty) {
+      counterpartyVolumes.set(counterparty, (counterpartyVolumes.get(counterparty) ?? 0) + toNumber(event.amountUSDC));
+    }
+  }
+  const largestCounterpartyVolume = Math.max(0, ...counterpartyVolumes.values());
+  const volumeConcentrationRate =
+    totalCompletedVolume > 0 ? largestCounterpartyVolume / totalCompletedVolume : 0;
 
   if (evidenceCount === 0) {
-    return {
-      wallet,
-      reputationScore: 0,
-      financialRiskScore: 0,
-      riskTier: "Unknown",
-      confidenceLevel: "Low",
-      paymentSuccessRate: 0,
-      totalVolumeUSDC: "0.00",
-      successfulPayments: 0,
-      failedPayments: 0,
-      resourcesPurchased: 0,
-      resourcesDownloaded: 0,
-      requestsCreated: 0,
-      escrowsFunded: 0,
-      deliveriesSubmitted: 0,
-      fundsReleased: 0,
-      disputeRate: 0,
-      refundRate: 0,
-      lastActivity: null,
-      evidenceCount: 0
-    };
+    return buildEmptySummary(wallet, { participantType, participantName, operatorAddress });
   }
 
   let score = 500;
@@ -92,23 +195,208 @@ export function calculateReputation(wallet: string, events: ReputationEvent[]): 
   score += Math.min(totalVolume * 1.4, 180);
   score += Math.min(resourcesDownloaded * 18, 90);
   score += Math.min(fundsReleased * 40, 120);
+  score += Math.min(uniqueCounterparties * 18, 72);
+  if (evidenceCount < 5) score -= 35;
   score = Math.max(0, Math.min(1000, Math.round(score)));
 
   const confidenceLevel = getConfidence(evidenceCount);
-  const riskTier = getRiskTier(score, evidenceCount);
-  const financialRiskScore =
-    riskTier === "Unknown"
-      ? 0
-      : Math.max(0, Math.min(100, Math.round(100 - score / 10 + incompletePurchases * 8)));
+  const purchaseStartAbandonmentRate =
+    startedPurchases > 0 ? incompletePurchases / startedPurchases : 0;
+  const escrowCompletionRate = escrowsFunded > 0 ? fundsReleased / escrowsFunded : 0;
+  const downloadAfterPurchaseRate =
+    completedPurchases > 0 ? Math.min(resourcesDownloaded / completedPurchases, 1) : 0;
+  const financialRiskScore = Math.max(
+    0,
+    Math.min(
+      100,
+      Math.round(
+        100 -
+          score / 10 +
+          purchaseStartAbandonmentRate * 18 +
+          (1 - Math.min(escrowCompletionRate, 1)) * (escrowsFunded > 0 ? 10 : 0) +
+          (evidenceCount < 5 ? 12 : 0) +
+          (volumeConcentrationRate > 0.75 ? 8 : 0)
+      )
+    )
+  );
+  const riskTier = getRiskTier(financialRiskScore, evidenceCount);
   const paymentAttempts = successfulPayments + failedPayments;
   const paymentSuccessRate = paymentAttempts > 0 ? successfulPayments / paymentAttempts : 0;
   const lastActivity = walletEvents
     .map((event) => event.timestamp)
     .sort()
     .at(-1) ?? null;
+  const firstActivity = walletEvents
+    .map((event) => event.timestamp)
+    .sort()
+    .at(0) ?? null;
+  const daysSinceLastActivity = lastActivity
+    ? Math.max(0, Math.floor((Date.now() - Date.parse(lastActivity)) / 86_400_000))
+    : null;
+  const observedDays =
+    firstActivity && lastActivity
+      ? Math.max(1, Math.ceil((Date.parse(lastActivity) - Date.parse(firstActivity)) / 86_400_000) + 1)
+      : 1;
+  const averageActionsPerDay = evidenceCount / observedDays;
+  const averageTransactionAmount =
+    completedVolumeEvents.length > 0 ? totalCompletedVolume / completedVolumeEvents.length : 0;
+  const activityLevel = getActivityLevel({
+    evidenceCount,
+    averageActionsPerDay,
+    daysSinceLastActivity
+  });
+  const behavioralSignals: ReputationSummary["behavioralSignals"] = [
+    {
+      label: "Payment completion rate",
+      value: paymentAttempts > 0 ? formatPercent(paymentSuccessRate) : "Unknown",
+      status:
+        paymentAttempts === 0
+          ? "Unknown"
+          : paymentSuccessRate >= 0.9
+            ? "Normal"
+            : paymentSuccessRate >= 0.7
+              ? "Watch"
+              : "Elevated"
+    },
+    {
+      label: "Purchase abandonment",
+      value: startedPurchases > 0 ? formatPercent(purchaseStartAbandonmentRate) : "0%",
+      status: getSignalStatus(purchaseStartAbandonmentRate, 0.2, 0.5)
+    },
+    {
+      label: "Escrow completion rate",
+      value: escrowsFunded > 0 ? formatPercent(escrowCompletionRate) : "No escrow history",
+      status:
+        escrowsFunded === 0 ? "Unknown" : escrowCompletionRate >= 0.8 ? "Normal" : "Watch"
+    },
+    {
+      label: "Download-after-purchase rate",
+      value: completedPurchases > 0 ? formatPercent(downloadAfterPurchaseRate) : "No purchases",
+      status:
+        completedPurchases === 0
+          ? "Unknown"
+          : downloadAfterPurchaseRate >= 0.5
+            ? "Normal"
+            : "Watch"
+    },
+    {
+      label: "Counterparty diversity",
+      value: `${uniqueCounterparties} counterpart${uniqueCounterparties === 1 ? "y" : "ies"}`,
+      status: uniqueCounterparties >= 3 ? "Normal" : uniqueCounterparties > 0 ? "Watch" : "Unknown"
+    },
+    {
+      label: "Activity recency",
+      value:
+        daysSinceLastActivity === null
+          ? "No activity"
+          : daysSinceLastActivity === 0
+            ? "Active today"
+            : `${daysSinceLastActivity} days ago`,
+      status:
+        daysSinceLastActivity === null
+          ? "Unknown"
+          : daysSinceLastActivity <= 7
+            ? "Normal"
+            : daysSinceLastActivity <= 30
+              ? "Watch"
+              : "Elevated"
+    },
+    {
+      label: "Activity velocity",
+      value: `${averageActionsPerDay.toFixed(1)} actions/day`,
+      status: averageActionsPerDay > 5 ? "Watch" : averageActionsPerDay >= 1 ? "Normal" : "Watch"
+    },
+    {
+      label: "Volume concentration",
+      value: totalCompletedVolume > 0 ? formatPercent(volumeConcentrationRate) : "Unknown",
+      status: getSignalStatus(volumeConcentrationRate, 0.65, 0.85)
+    },
+    {
+      label: "Evidence count",
+      value: `${evidenceCount} events`,
+      status: evidenceCount >= 5 ? "Normal" : "Watch"
+    }
+  ];
+  const riskSignals: ReputationSummary["riskSignals"] = [];
+  const pushRisk = (label: string, severity: RiskSignalSeverity, description: string) => {
+    riskSignals.push({ label, severity, description });
+  };
+
+  if (!participantType) {
+    pushRisk(
+      "Unknown participant type",
+      "Monitor",
+      "Participant metadata is unavailable for this wallet."
+    );
+  }
+  if (evidenceCount < 5) {
+    pushRisk(
+      "Limited evidence",
+      "Low confidence",
+      "Risk profile is based on fewer than 5 Knowledge Exchange events."
+    );
+  }
+  if (purchaseStartAbandonmentRate >= 0.5) {
+    pushRisk(
+      "Purchase starts without completion",
+      "Elevated",
+      "Several purchase attempts started without corresponding completion events."
+    );
+  } else if (purchaseStartAbandonmentRate >= 0.2) {
+    pushRisk(
+      "Purchase starts without completion",
+      "Watch",
+      "Some purchase attempts started without corresponding completion events."
+    );
+  }
+  if (walletEvents.some((event) => event.eventType === "REQUEST_CANCELLED")) {
+    pushRisk(
+      "Cancellation history",
+      "Watch",
+      "At least one request cancellation is present in the activity history."
+    );
+  }
+  if (escrowsFunded > 0 && fundsReleased === 0) {
+    pushRisk(
+      "No completed escrow history",
+      "Monitor",
+      "Escrow funding exists, but no released funds event is present yet."
+    );
+  }
+  if (activityLevel === "Dormant") {
+    pushRisk(
+      "Dormant participant",
+      "Monitor",
+      "No recent Knowledge Exchange activity is available for this wallet."
+    );
+  }
+  if (averageActionsPerDay > 5) {
+    pushRisk(
+      "Recent activity spike",
+      "Monitor",
+      "Activity velocity is higher than the normal preview range."
+    );
+  }
+  if (volumeConcentrationRate > 0.75) {
+    pushRisk(
+      "Counterparty concentration",
+      "Watch",
+      "Most completed volume is concentrated with one counterparty."
+    );
+  }
+  if (riskSignals.length === 0) {
+    pushRisk(
+      "No elevated review signals",
+      "Monitor",
+      "No elevated review signals were detected in the current Knowledge Exchange history."
+    );
+  }
 
   return {
     wallet,
+    participantType,
+    participantName,
+    operatorAddress,
     reputationScore: score,
     financialRiskScore,
     riskTier,
@@ -126,7 +414,20 @@ export function calculateReputation(wallet: string, events: ReputationEvent[]): 
     disputeRate: 0,
     refundRate: 0,
     lastActivity,
-    evidenceCount
+    evidenceCount,
+    completedActions,
+    totalCompletedVolumeUSDC: totalCompletedVolume.toFixed(2),
+    uniqueCounterparties,
+    averageTransactionAmountUSDC: averageTransactionAmount.toFixed(2),
+    averageActionsPerDay: averageActionsPerDay.toFixed(1),
+    daysSinceLastActivity,
+    activityLevel,
+    purchaseStartAbandonmentRate,
+    escrowCompletionRate,
+    downloadAfterPurchaseRate,
+    volumeConcentrationRate,
+    behavioralSignals,
+    riskSignals
   };
 }
 

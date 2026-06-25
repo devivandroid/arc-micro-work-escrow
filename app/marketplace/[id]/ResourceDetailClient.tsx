@@ -12,6 +12,7 @@ import { useUsdc } from "@/hooks/useUsdc";
 import { useWallet } from "@/hooks/useWallet";
 import { usdcDecimals } from "@/lib/contracts/microWorkEscrow";
 import { getResourceById } from "@/lib/localResources";
+import { getParticipantBadgeClass, getParticipantLabel } from "@/lib/participants";
 import { getPurchases, savePurchase, type InstantAccessPurchase } from "@/lib/purchases";
 import {
   getRatingSummary,
@@ -133,6 +134,8 @@ export function ResourceDetailClient({ initialResource, resourceId }: ResourceDe
   const isTxBusy = ["signature", "submitted", "confirming"].includes(txState.phase);
   const unlocked = Boolean(purchase);
   const isApiBackedResource = Boolean(initialResource);
+  const sellerDisplayName =
+    resource?.participantName ?? resource?.sellerName ?? "Independent Creator";
 
   useEffect(() => {
     setResource(getResourceById(resourceId) ?? initialResource);
@@ -303,6 +306,13 @@ export function ResourceDetailClient({ initialResource, resourceId }: ResourceDe
             <span className="rounded-full border border-arc-mint/40 bg-arc-mint/10 px-3 py-1 text-xs font-semibold text-arc-mint">
               Instant Access
             </span>
+            <span
+              className={`rounded-full border px-3 py-1 text-xs font-semibold ${getParticipantBadgeClass(
+                resource.participantType
+              )}`}
+            >
+              {getParticipantLabel(resource.participantType)}
+            </span>
             {resource.agentConsumable ? (
               <span className="rounded-full border border-arc-blue/40 bg-arc-blue/10 px-3 py-1 text-xs font-semibold text-arc-blue">
                 Agent-ready
@@ -340,9 +350,7 @@ export function ResourceDetailClient({ initialResource, resourceId }: ResourceDe
             <div>
               <dt className="text-slate-500">Seller</dt>
               <dd className="mt-1">
-                <span className="block text-white">
-                  {resource.sellerName ?? "Independent Creator"}
-                </span>
+                <span className="block text-white">{sellerDisplayName}</span>
                 <a
                   href={getExplorerAddressUrl(resource.sellerAddress)}
                   target="_blank"
@@ -353,6 +361,25 @@ export function ResourceDetailClient({ initialResource, resourceId }: ResourceDe
                 </a>
               </dd>
             </div>
+            <div>
+              <dt className="text-slate-500">Participant type</dt>
+              <dd className="mt-1 text-white">{getParticipantLabel(resource.participantType)}</dd>
+            </div>
+            {resource.operatorAddress ? (
+              <div>
+                <dt className="text-slate-500">Operator wallet</dt>
+                <dd className="mt-1">
+                  <a
+                    href={getExplorerAddressUrl(resource.operatorAddress)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-white hover:text-arc-blue"
+                  >
+                    {shortenAddress(resource.operatorAddress)}
+                  </a>
+                </dd>
+              </div>
+            ) : null}
           </dl>
 
           <div className="mt-6">
@@ -612,9 +639,7 @@ ${getAgentPreviewPayload(resource)}`}
                 </div>
                 <div>
                   <dt>Seller</dt>
-                  <dd className="text-white">
-                    {resource.sellerName ?? shortenAddress(purchase.sellerAddress)}
-                  </dd>
+                  <dd className="text-white">{sellerDisplayName}</dd>
                 </div>
                 <div>
                   <dt>Amount</dt>

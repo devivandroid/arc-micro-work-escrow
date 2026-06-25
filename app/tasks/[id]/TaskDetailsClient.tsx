@@ -18,6 +18,7 @@ import {
 import { useUsdc } from "@/hooks/useUsdc";
 import { useWallet } from "@/hooks/useWallet";
 import { escrowContractAddress, usdcDecimals } from "@/lib/contracts/microWorkEscrow";
+import { getParticipantBadgeClass, getParticipantLabel } from "@/lib/participants";
 import { parseTaskMetadata } from "@/lib/taskMetadata";
 import { getExplorerAddressUrl, normalizeWeb3Error, shortenAddress } from "@/lib/web3";
 
@@ -96,6 +97,10 @@ export function TaskDetailsClient({ taskId }: TaskDetailsClientProps) {
   const task = taskQuery.data;
   const metadata = task ? parseTaskMetadata(task.metadataURI) : null;
   const deliveryMetadata = task ? parseTaskMetadata(task.deliveryURI) : null;
+  const requesterName = metadata?.participantName || "Requester";
+  const requesterType = metadata?.participantType;
+  const providerName = metadata?.providerParticipantName || "Provider";
+  const providerType = metadata?.providerParticipantType;
   const normalizedAddress = address?.toLowerCase();
   const isClient = Boolean(
     task && normalizedAddress && task.client.toLowerCase() === normalizedAddress
@@ -254,7 +259,16 @@ export function TaskDetailsClient({ taskId }: TaskDetailsClientProps) {
         <div className="grid gap-5 lg:grid-cols-[1fr_24rem]">
           <section className="rounded-lg border border-arc-border bg-arc-panel/80 p-5">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <TaskStatusBadge status={task.statusLabel} />
+              <div className="flex flex-wrap items-center gap-2">
+                <TaskStatusBadge status={task.statusLabel} />
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${getParticipantBadgeClass(
+                    requesterType
+                  )}`}
+                >
+                  {getParticipantLabel(requesterType)} requester
+                </span>
+              </div>
               {escrowContractAddress ? (
                 <a
                   href={getExplorerAddressUrl(escrowContractAddress)}
@@ -275,6 +289,7 @@ export function TaskDetailsClient({ taskId }: TaskDetailsClientProps) {
               <div>
                 <dt className="text-slate-500">Requester</dt>
                 <dd className="mt-1">
+                  <span className="mb-1 block text-white">{requesterName}</span>
                   <a
                     href={getExplorerAddressUrl(task.client)}
                     target="_blank"
@@ -286,22 +301,52 @@ export function TaskDetailsClient({ taskId }: TaskDetailsClientProps) {
                 </dd>
               </div>
               <div>
+                <dt className="text-slate-500">Requester type</dt>
+                <dd className="mt-1 text-white">{getParticipantLabel(requesterType)}</dd>
+              </div>
+              {metadata?.operatorAddress ? (
+                <div>
+                  <dt className="text-slate-500">Operator wallet</dt>
+                  <dd className="mt-1">
+                    <a
+                      href={getExplorerAddressUrl(metadata.operatorAddress)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-white hover:text-arc-blue"
+                    >
+                      {shortenAddress(metadata.operatorAddress)}
+                    </a>
+                  </dd>
+                </div>
+              ) : null}
+              <div>
                 <dt className="text-slate-500">Provider</dt>
                 <dd className="mt-1">
                   {task.freelancer === zeroAddress ? (
                     <span className="text-white">Not assigned</span>
                   ) : (
-                    <a
-                      href={getExplorerAddressUrl(task.freelancer)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-white hover:text-arc-blue"
-                    >
-                      {shortenAddress(task.freelancer)}
-                    </a>
+                    <>
+                      {metadata?.providerParticipantName ? (
+                        <span className="mb-1 block text-white">{providerName}</span>
+                      ) : null}
+                      <a
+                        href={getExplorerAddressUrl(task.freelancer)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-white hover:text-arc-blue"
+                      >
+                        {shortenAddress(task.freelancer)}
+                      </a>
+                    </>
                   )}
                 </dd>
               </div>
+              {providerType ? (
+                <div>
+                  <dt className="text-slate-500">Provider type</dt>
+                  <dd className="mt-1 text-white">{getParticipantLabel(providerType)}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt className="text-slate-500">Amount</dt>
                 <dd className="mt-1 text-white">{task.amountUsdc} USDC</dd>

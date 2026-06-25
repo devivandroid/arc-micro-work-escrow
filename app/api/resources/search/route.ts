@@ -39,7 +39,11 @@ export async function GET(request: NextRequest) {
       featuredLabel: resource.featuredLabel,
       deliveryType: resource.deliveryType,
       files: resource.files ?? [],
+      sellerName: resource.sellerName,
       sellerAddress: resource.sellerAddress,
+      participantType: resource.participantType,
+      participantName: resource.participantName,
+      operatorAddress: resource.operatorAddress,
       agentConsumable: resource.agentConsumable,
       endpoint: `/api/resources/${resource.id}`,
       purchaseFlow: {

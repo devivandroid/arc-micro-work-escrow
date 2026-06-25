@@ -1,46 +1,73 @@
 import { NextResponse } from "next/server";
+import { getRiskModelResponse } from "@/lib/server/risk-intelligence/riskService";
 
 export const runtime = "nodejs";
 
 export async function GET() {
+  const model = getRiskModelResponse();
+
   return NextResponse.json({
+    ...model,
+    legacyEndpoint: "/api/reputation/model",
+    publicRiskEndpoint: "/api/risk/model",
     ok: true,
-    name: "Knowledge Exchange Agent Risk API Model",
+    name: "Knowledge Exchange Risk Intelligence Model",
     scope: "Knowledge Exchange activity only",
     network: "Arc Testnet",
     positioning: [
-      "Risk and reputation signals for programmable commerce on Arc",
-      "Designed for Arc-based agent commerce",
+      "Participant risk signals for Human & Agent Commerce activity",
+      "Designed for Knowledge Exchange marketplace and escrow events",
       "Not an official Arc or Circle score",
       "Does not score all Arc wallets globally"
     ],
     scoring: {
       startingScore: 500,
-      range: "0-1000",
+      financialBehaviorScoreRange: "0-1000",
+      riskScoreRange: "0-100 where 0 is lowest observed risk",
       positiveSignals: [
-        "successful purchases",
+        "successful payments",
         "verified payments",
         "resource downloads",
         "escrow funding",
         "delivery submission",
         "funds released",
-        "API unlock success"
+        "API unlock success",
+        "counterparty diversity",
+        "completed volume"
       ],
       negativeSignals: [
         "cancelled requests",
         "purchase starts without completion"
       ],
-      volumeBoost: "Adds capped points for observed USDC volume",
+      volumeBoost: "Adds capped points for completed USDC volume",
       confidence: {
-        Low: "1-4 events",
-        Medium: "5-11 events",
-        High: "12+ events"
+        Low: "fewer than 5 evidence events",
+        Medium: "5-20 evidence events",
+        High: "more than 20 evidence events"
       },
       riskTiers: {
-        Low: "score >= 750 and confidence is not Low",
-        Medium: "score 500-749",
-        High: "score below 500",
-        Unknown: "no activity"
+        Low: "risk score 0-24",
+        Medium: "risk score 25-59",
+        High: "risk score 60-100",
+        Unknown: "no Knowledge Exchange activity; no data is not high risk"
+      },
+      activityLevels: {
+        Dormant: "no activity or last activity more than 30 days ago",
+        Low: "less than 1 action per day",
+        Normal: "1-5 actions per day",
+        High: "more than 5 actions per day"
+      },
+      profileStatuses: {
+        active: "medium or high confidence Knowledge Exchange evidence is available",
+        limited: "some Knowledge Exchange evidence is available, but confidence is low",
+        no_data: "no Knowledge Exchange activity was found for the wallet"
+      },
+      noDataHandling: {
+        rule: "No data is not high risk.",
+        riskTier: "Unknown",
+        confidenceLevel: "Low",
+        numericScores: "financialBehaviorScore and riskScore are null",
+        riskGuardDefault: "review"
       }
     },
     limitations: [

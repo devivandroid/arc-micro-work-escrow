@@ -3,26 +3,29 @@ import type { InstantResource } from "@/types/resource";
 export const instantResources: InstantResource[] = [
   {
     id: "agent-financial-reputation-api-access-pack",
-    title: "Agent Risk API Access Pack",
+    title: "Risk Intelligence API Access Pack",
     description:
-      "API access documentation, scoring methodology, JSON schemas and integration examples for querying wallet risk profiles and agent reputation signals based on Knowledge Exchange activity. This is a preview risk service, not an official Arc or Circle score.",
+      "API access documentation, scoring methodology, JSON schemas and integration examples for querying Risk Intelligence profiles and participant reputation signals based on Knowledge Exchange activity. This is a preview risk service, not an official Arc or Circle score.",
     resourceType: "API Documentation",
     category: "Risk Analytics",
-    tags: ["Risk API", "Wallet Risk", "Agent Commerce", "JSON Schema"],
+    tags: ["Risk Intelligence", "Wallet Risk", "Agent Commerce", "JSON Schema"],
     priceUSDC: "25.00",
     license: "Commercial Use Allowed",
     accessType: "instant",
     featured: true,
     featuredLabel: "Featured API Asset",
     deliveryType: "inline",
-    sellerName: "Synthetic Risk Intelligence Group",
+    sellerName: "ResearchAgent-01",
+    participantType: "agent",
+    participantName: "ResearchAgent-01",
+    operatorAddress: "0xdddddddddddddddddddddddddddddddddddddddd",
     sellerAddress: "0xdddddddddddddddddddddddddddddddddddddddd",
     lockedContentURI: "ake://resources/agent-financial-reputation-api-access-pack",
     previewText:
-      "Integration pack for querying Knowledge Exchange wallet risk profiles, recent reputation events and model methodology.",
+      "Integration pack for querying Knowledge Exchange Risk Intelligence profiles, recent reputation events and model methodology.",
     agentConsumable: true,
     unlockedContentMock:
-      '# Agent Risk API Access Pack\n\n## Scope\n\nThis integration pack documents the Knowledge Exchange Agent Risk API. Risk profiles are based only on Knowledge Exchange activity. This is not an official Arc or Circle score and does not rank all Arc wallets globally.\n\n## Endpoints\n\n```txt\nGET /api/reputation/:wallet\nGET /api/reputation?limit=10&riskTier=Low\nGET /api/reputation/events?limit=25\nGET /api/reputation/model\n```\n\n## Example wallet response\n\n```json\n{\n  "ok": true,\n  "wallet": "0x...",\n  "scope": "Knowledge Exchange activity only",\n  "network": "Arc Testnet",\n  "reputationScore": 842,\n  "financialRiskScore": 12,\n  "riskTier": "Low",\n  "confidenceLevel": "Medium",\n  "metrics": {\n    "totalVolumeUSDC": "18.50",\n    "successfulPayments": 4,\n    "resourcesPurchased": 3,\n    "resourcesDownloaded": 2,\n    "escrowsFunded": 1,\n    "fundsReleased": 1,\n    "paymentSuccessRate": 1\n  }\n}\n```\n\n## Scoring summary\n\n- Starts at 500.\n- Adds points for completed purchases, verified payments, downloads, escrow funding, submitted deliveries and released funds.\n- Adds capped points for observed USDC volume.\n- Penalizes cancelled requests and purchase starts without completion.\n- Confidence depends on evidence count.\n\n## Integration example\n\n```ts\nconst response = await fetch(`/api/reputation/${walletAddress}`);\nconst walletRisk = await response.json();\nif (walletRisk.riskTier === "High") {\n  // route to manual review\n}\n```\n\n## Limitations\n\n- MVP preview risk model.\n- Knowledge Exchange events only.\n- No official Arc or Circle affiliation.\n- No global wallet ranking.\n- Future roadmap: persistent DB, Arc-wide indexing, verified agent identities, disputes and attestations.'
+      '# Risk Intelligence API Access Pack\n\n## Scope\n\nThis integration pack documents the Knowledge Exchange Risk Intelligence API. Risk profiles are based only on Knowledge Exchange activity. This is not an official Arc or Circle score and does not rank all Arc wallets globally.\n\n## Endpoints\n\n```txt\nGET /api/reputation/:wallet\nGET /api/reputation?limit=10&riskTier=Low\nGET /api/reputation/events?limit=25\nGET /api/reputation/model\n```\n\n## Example wallet response\n\n```json\n{\n  "ok": true,\n  "wallet": "0x...",\n  "scope": "Knowledge Exchange activity only",\n  "scores": {\n    "financialBehaviorScore": 842,\n    "riskScore": 12,\n    "riskTier": "Low",\n    "confidenceLevel": "Medium"\n  },\n  "activity": {\n    "totalCompletedVolumeUSDC": "18.50",\n    "completedActions": 8,\n    "uniqueCounterparties": 3\n  }\n}\n```\n\n## Scoring summary\n\n- Starts at 500.\n- Adds points for completed payments, verified payments, downloads, escrow funding, submitted deliveries and released funds.\n- Adds capped points for completed USDC volume and counterparty diversity.\n- Penalizes cancelled requests and purchase starts without completion.\n- Confidence depends on evidence count.\n\n## Integration example\n\n```ts\nconst response = await fetch(`/api/reputation/${walletAddress}`);\nconst riskProfile = await response.json();\nif (riskProfile.scores?.riskTier === "High") {\n  // route to manual review\n}\n```\n\n## Limitations\n\n- MVP preview risk model.\n- Knowledge Exchange events only.\n- No official Arc or Circle affiliation.\n- No global wallet ranking.\n- Future roadmap: persistent DB, Arc-wide indexing, verified agent identities, disputes and attestations.'
   },
   {
     id: "synthetic-agent-commerce-benchmark-dataset",
@@ -43,7 +46,10 @@ export const instantResources: InstantResource[] = [
     featured: true,
     featuredLabel: "Featured Dataset",
     deliveryType: "download",
-    sellerName: "Autonomous Economy Research Lab",
+    sellerName: "Autonomous Economy Lab",
+    participantType: "organization",
+    participantName: "Autonomous Economy Lab",
+    operatorAddress: "0xcccccccccccccccccccccccccccccccccccccccc",
     sellerAddress: "0xcccccccccccccccccccccccccccccccccccccccc",
     lockedContentURI: "ake://resources/synthetic-agent-commerce-benchmark-dataset",
     previewText:
@@ -108,7 +114,10 @@ export const instantResources: InstantResource[] = [
     featured: true,
     featuredLabel: "Featured Research Asset",
     deliveryType: "download",
-    sellerName: "Synthetic Risk Intelligence Group",
+    sellerName: "ResearchAgent-01",
+    participantType: "agent",
+    participantName: "ResearchAgent-01",
+    operatorAddress: "0xdddddddddddddddddddddddddddddddddddddddd",
     sellerAddress: "0xdddddddddddddddddddddddddddddddddddddddd",
     lockedContentURI: "ake://resources/agent-financial-reputation-risk-benchmark",
     previewText:
@@ -166,7 +175,9 @@ export const instantResources: InstantResource[] = [
     license: "CC-BY-4.0",
     accessType: "instant",
     deliveryType: "download",
-    sellerName: "Risk Data Benchmarks",
+    sellerName: "Independent Researcher",
+    participantType: "human",
+    participantName: "Independent Researcher",
     sellerAddress: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     lockedContentURI: "ake://resources/credit-card-fraud-detection-benchmark-package",
     previewText:
@@ -220,6 +231,9 @@ export const instantResources: InstantResource[] = [
     accessType: "instant",
     deliveryType: "inline",
     sellerName: "Autonomous Commerce Lab",
+    participantType: "organization",
+    participantName: "Autonomous Commerce Lab",
+    operatorAddress: "0x1111111111111111111111111111111111111111",
     sellerAddress: "0x1111111111111111111111111111111111111111",
     lockedContentURI: "ake://resources/agent-wallet-security-review-checklist",
     previewText:
